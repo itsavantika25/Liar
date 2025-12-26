@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LIAR</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: 'Montserrat', sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(
+    120deg,
+    #00f5d4,
+    #7209b7,
+    #f72585,
+    #ffd60a
+  );
+  background-size: 400% 400%;
+  animation: gradientFlow 12s ease infinite;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+
+.container {
+  width: 92%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  overflow: hidden;
+}
+
+h1 {
+  text-align: center;
+  margin: 0;
+  font-size: 2.4rem;
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+input, button {
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  border: none;
+  margin-top: 12px;
+  font-size: 1rem;
+}
+
+input {
+  background: #eeeeee;
+}
+
+button {
+  background: #111;
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+.hidden {
+  display: none;
+}
+
+/* GAME AREA */
+#game {
+  position: relative;
+  height: 360px;
+}
+
+/* SLIDE ANIMATION */
+.slide-out {
+  animation: slideOut 0.35s forwards;
+}
+
+.slide-in {
+  animation: slideIn 0.35s forwards;
+}
+
+@keyframes slideOut {
+  to { transform: translateX(-120%); opacity: 0; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* CARD FLIP */
+.scene {
+  perspective: 1000px;
+  margin-top: 24px;
+}
+
+.card {
+  width: 100%;
+  height: 220px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s ease;
+}
+
+.card.flip {
+  transform: rotateY(180deg);
+}
+
+.face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 22px;
+  backface-visibility: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+  font-size: 1.6rem;
+  font-weight: 900;
+}
+
+.front {
+  color: #111;
+}
+
+.back {
+  background: #ffffff;
+  transform: rotateY(180deg);
+  color: #111;
+  border: 4px solid transparent;
+  box-shadow: 0 0 18px rgba(0,0,0,0.15);
+}
+
+/* Neon border colors */
+.border0 { border-color: #00f5d4; }
+.border1 { border-color: #80ffdb; }
+.border2 { border-color: #ffd166; }
+.border3 { border-color: #ffee32; }
+.border4 { border-color: #bdb2ff; }
+.border5 { border-color: #ffc6ff; }
+
+
+.impostor {
+  background: #ffc2d1 !important;
+  color: #c9184a;
+}
+
+/* PLAYER COLORS */
+.color0 { background: #9ff3ef; }
+.color1 { background: #caffbf; }
+.color2 { background: #ffd6a5; }
+.color3 { background: #fdffb6; }
+.color4 { background: #bdb2ff; }
+.color5 { background: #ffc6ff; }
+
+.turn {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 1.1rem;
+}
+
+.footer {
+  margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>LIAR</h1>
+  <div class="subtitle">One word. One liar.</div>
+
+  <div id="setup">
+    <input id="playerCount" type="number" min="3" max="12" placeholder="Number of players">
+    <button onclick="createNames()">NEXT</button>
+  </div>
+
+  <div id="names" class="hidden"></div>
+
+  <div id="game" class="hidden">
+    <div class="turn" id="turnText"></div>
+
+    <div class="scene">
+      <div class="card" id="card">
+        <div class="face front">HOLD TO REVEAL</div>
+        <div class="face back" id="cardBack"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button id="nextBtn" onclick="nextPlayer()">NEXT PLAYER</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const words = ["Pizza","School","Phone","Doctor","Beach","Airport"];
+let players = [];
+let current = 0;
+let impostor;
+let word;
+
+function createNames() {
+  const count = document.getElementById("playerCount").value;
+  if (!count || count < 3) return;
+
+  document.getElementById("setup").classList.add("hidden");
+  const n = document.getElementById("names");
+  n.innerHTML = "<h3>Players</h3>";
+
+const saved = JSON.parse(localStorage.getItem("liarPlayers") || "[]");
+
+for (let i = 0; i < count; i++) {
+  const value = saved[i] || "";
+  n.innerHTML += `<input placeholder="Player ${i+1}" value="${value}">`;
+}
+
+
+  n.innerHTML += `<button onclick="startGame()">START GAME</button>`;
+  n.classList.remove("hidden");
+}
+
+function startGame() {
+  players = [];
+  let valid = true;
+
+  document.querySelectorAll("#names input").forEach(i => {
+    if (!i.value.trim()) valid = false;
+    players.push(i.value.trim());
+  });
+
+  if (!valid) {
+    alert("Please enter all player names");
+    return;
+  }
+
+  localStorage.setItem("liarPlayers", JSON.stringify(players));
+
+  impostor = Math.floor(Math.random() * players.length);
+  word = words[Math.floor(Math.random() * words.length)];
+
+  document.getElementById("names").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+
+  current = 0;
+  updateTurn(true);
+}
+
+
+function updateTurn(first=false) {
+  const game = document.getElementById("game");
+  if (!first) {
+    game.classList.add("slide-out");
+    setTimeout(() => {
+      game.classList.remove("slide-out");
+      renderTurn();
+      game.classList.add("slide-in");
+    }, 350);
+    setTimeout(() => game.classList.remove("slide-in"), 700);
+  } else {
+    renderTurn();
+  }
+}
+
+function renderTurn() {
+  document.getElementById("turnText").innerText =
+    `Pass phone to ${players[current]}`;
+
+  const card = document.getElementById("card");
+  const back = document.getElementById("cardBack");
+
+card.className = "card";
+document.querySelector(".front").className =
+  `face front color${current % 6}`;
+back.className = `face back border${current % 6}`;
+
+
+  if (current === impostor) {
+    back.innerText = "YOU ARE THE LIAR 🤫";
+    back.classList.add("impostor");
+  } else {
+    back.innerText = word;
+  }
+}
+
+const card = document.getElementById("card");
+
+card.addEventListener("touchstart", () => card.classList.add("flip"));
+card.addEventListener("mousedown", () => card.classList.add("flip"));
+card.addEventListener("touchend", () => card.classList.remove("flip"));
+card.addEventListener("mouseup", () => card.classList.remove("flip"));
+
+function nextPlayer() {
+  const btn = document.getElementById("nextBtn");
+  btn.disabled = true;
+
+  current++;
+  if (current < players.length) {
+    updateTurn();
+    setTimeout(() => btn.disabled = false, 400);
+  } else {
+    document.getElementById("game").innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+        <h2>Discuss & Vote</h2>
+        <button onclick="revealEnd()">REVEAL LIAR</button>
+      </div>
+    `;
+  }
+}
+
+function revealEnd() {
+  document.getElementById("game").innerHTML = `
+    <div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+      <h2>LIAR: ${players[impostor]}</h2>
+      <p>Word: ${word}</p>
+<button onclick="newGame()">NEW GAME</button>
+    </div>
+  `;
+}
+
+function newGame() {
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("names").classList.remove("hidden");
+}
+
+</script>
+
+</body>
+</html>
