@@ -242,22 +242,15 @@ const words = ["Pizza","Burger","Sandwich","Pasta","Rice","Bread","Butter","Chee
 "Beach","River","Lake","Pond","Mountain","Hill","Forest","Desert","Garden","Field",
 "Home","House","Apartment","Building","Office","Factory","Warehouse","Shop","Showroom","Salon",
 "Kitchen","Bathroom","Bedroom","Living Room","Balcony","Terrace","Garage","Store Room","Dining Room","Lobby",
-"Cinema","Theatre","Museum","Zoo","Aquarium","Temple","Church","Mosque","Library Hall","Community Center",
-"Toy","Ball","Bat","Racket","Game","Puzzle","Bookstore","Newspaper","Magazine","Radio","Pancake","Waffle","Omelette","Cereal","Honey","Jam","Peanut Butter","Yogurt","Almonds","Popcorn",
-"Straw","Napkin","Tissue","Toothbrush","Toothpaste","Comb","Hairbrush","Shampoo","Soap","Towel",
-"Helmet","Backpack","Suitcase","Lock","Padlock","Ladder","Toolbox","Hammer","Screwdriver","Wrench",
-"Plant","Flower","Leaf","Seed","Soil","Pot","Vase","Bucket","Mug","Thermos",
-"Envelope","Stamp","Parcel","Courier","Mailbox","Notice Board","Whiteboard","Marker","Highlighter","Glue",
-"Fan Belt","Engine","Battery","Fuel","Petrol Pump","Speedometer","Steering Wheel","Seatbelt","Horn","Mirror Cap",
-"Raincoat","Umbrella Stand","Doormat","Curtain Rod","Shelf","Drawer","Cupboard","Wardrobe","Hanger","Iron",
-"Calendar Page","Alarm","Stopwatch","Timer","Bell","Whistle","Microphone Stand","Tripod","Flashlight","Torch",
-"Notebook Cover","Bookmark"]
+"Cinema","Theatre","Museum","Zoo","Aquarium","Temple","Church","Mosque","Library Hall","Community Center"];
 
-;
 let players = [];
 let current = 0;
-let impostor;
-let word;
+let impostor = null;
+let word = null;
+
+let recentWords = [];
+const RECENT_LIMIT = 5;
 
 function createNames() {
   const count = document.getElementById("playerCount").value;
@@ -267,16 +260,26 @@ function createNames() {
   const n = document.getElementById("names");
   n.innerHTML = "<h3>Players</h3>";
 
-const saved = JSON.parse(localStorage.getItem("liarPlayers") || "[]");
+  const saved = JSON.parse(localStorage.getItem("liarPlayers") || "[]");
 
-for (let i = 0; i < count; i++) {
-  const value = saved[i] || "";
-  n.innerHTML += `<input placeholder="Player ${i+1}" value="${value}">`;
-}
-
+  for (let i = 0; i < count; i++) {
+    const value = saved[i] || "";
+    n.innerHTML += `<input placeholder="Player ${i+1}" value="${value}">`;
+  }
 
   n.innerHTML += `<button onclick="startGame()">START GAME</button>`;
   n.classList.remove("hidden");
+}
+
+function pickWord() {
+  let candidate;
+  do {
+    candidate = words[Math.floor(Math.random() * words.length)];
+  } while (recentWords.includes(candidate));
+
+  word = candidate;
+  recentWords.push(word);
+  if (recentWords.length > RECENT_LIMIT) recentWords.shift();
 }
 
 function startGame() {
@@ -296,7 +299,7 @@ function startGame() {
   localStorage.setItem("liarPlayers", JSON.stringify(players));
 
   impostor = Math.floor(Math.random() * players.length);
-  word = words[Math.floor(Math.random() * words.length)];
+  pickWord();
 
   document.getElementById("names").classList.add("hidden");
   document.getElementById("game").classList.remove("hidden");
@@ -305,8 +308,7 @@ function startGame() {
   updateTurn(true);
 }
 
-
-function updateTurn(first=false) {
+function updateTurn(first = false) {
   const game = document.getElementById("game");
   if (!first) {
     game.classList.add("slide-out");
@@ -328,11 +330,10 @@ function renderTurn() {
   const card = document.getElementById("card");
   const back = document.getElementById("cardBack");
 
-card.className = "card";
-document.querySelector(".front").className =
-  `face front color${current % 6}`;
-back.className = `face back border${current % 6}`;
-
+  card.className = "card";
+  document.querySelector(".front").className =
+    `face front color${current % 6}`;
+  back.className = `face back border${current % 6}`;
 
   if (current === impostor) {
     back.innerText = "YOU ARE THE LIAR 🤫";
@@ -372,7 +373,7 @@ function revealEnd() {
     <div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
       <h2>LIAR: ${players[impostor]}</h2>
       <p>Word: ${word}</p>
-<button onclick="newGame()">NEW GAME</button>
+      <button onclick="newGame()">NEW GAME</button>
     </div>
   `;
 }
@@ -400,7 +401,6 @@ function newGame() {
     </div>
   `;
 
-  // reattach flip listeners
   const card = document.getElementById("card");
   card.addEventListener("touchstart", () => card.classList.add("flip"));
   card.addEventListener("mousedown", () => card.classList.add("flip"));
@@ -409,11 +409,12 @@ function newGame() {
 
   document.getElementById("names").classList.remove("hidden");
 }
-
 </script>
+
 
 </body>
 </html>
+
 
 
 
