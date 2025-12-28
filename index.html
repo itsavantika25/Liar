@@ -349,7 +349,35 @@ function revealEnd() {
 }
 
 function newGame() {
-  document.getElementById("game").classList.add("hidden");
+  current = 0;
+  impostor = null;
+  word = null;
+
+  const game = document.getElementById("game");
+  game.classList.add("hidden");
+
+  game.innerHTML = `
+    <div class="turn" id="turnText"></div>
+
+    <div class="scene">
+      <div class="card" id="card">
+        <div class="face front">HOLD TO REVEAL</div>
+        <div class="face back" id="cardBack"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button id="nextBtn" onclick="nextPlayer()">NEXT PLAYER</button>
+    </div>
+  `;
+
+  // reattach flip listeners
+  const card = document.getElementById("card");
+  card.addEventListener("touchstart", () => card.classList.add("flip"));
+  card.addEventListener("mousedown", () => card.classList.add("flip"));
+  card.addEventListener("touchend", () => card.classList.remove("flip"));
+  card.addEventListener("mouseup", () => card.classList.remove("flip"));
+
   document.getElementById("names").classList.remove("hidden");
 }
 
@@ -357,4 +385,5 @@ function newGame() {
 
 </body>
 </html>
+
 
